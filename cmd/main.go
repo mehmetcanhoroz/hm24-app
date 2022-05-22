@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/mehmetcanhoroz/hm24-app/handlers"
+	"github.com/mehmetcanhoroz/hm24-app/services"
 	"log"
 	"net/http"
 	"os"
@@ -37,5 +39,12 @@ func run() error {
 }
 
 func prepareHandlers() {
+	analyseService := services.NewAnalyseService()
+	analyseHandler := handlers.NewAnalyseHandler(analyseService)
+
 	r = mux.NewRouter()
+
+	analyseRouter := r.PathPrefix("/analyse").Subrouter()
+	analyseRouter.HandleFunc("/html", analyseHandler.GetHtmlContentOfURL)
+	analyseRouter.HandleFunc("/title", analyseHandler.FindHtmlTitleOfURL)
 }
