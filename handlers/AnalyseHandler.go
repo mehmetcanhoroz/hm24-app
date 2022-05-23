@@ -50,6 +50,25 @@ func (h *AnalyseHandler) FindHtmlTitleOfURL(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+func (h *AnalyseHandler) GetListOfTypeHtmlElements(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	url := queryParams["url"][0]
+
+	htmlContent := h.AnalyserService.FindAllUrlsInPage(fmt.Sprintf("%s", url))
+
+	err := rest_utils.PrepareApiResponseAsJson(w)
+	if err != nil {
+		return
+	}
+
+	response := rest_utils.NewApiResponse(200, h.AnalyserService.FindAllUrlPathsInPage(htmlContent), "")
+	w.WriteHeader(200)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		panic(err)
+	}
+}
+
 func NewAnalyseHandler(analyseService services.IAnalyserService) AnalyseHandler {
 	return AnalyseHandler{AnalyserService: analyseService}
 }
