@@ -46,6 +46,7 @@ func prepareHandlers() {
 
 	analyseRouter := r.PathPrefix("/analyse").Subrouter()
 	analyseRouter.HandleFunc("/html", analyseHandler.GetHtmlContentOfURL)
+	analyseRouter.HandleFunc("/html-version", analyseHandler.DetermineHTMLVersion)
 	analyseRouter.HandleFunc("/title", analyseHandler.FindHtmlTitleOfURL)
-	analyseRouter.HandleFunc("/links", analyseHandler.GetListOfTypeHtmlElements)
+	analyseRouter.HandleFunc("/links", analyseHandler.GetListOfLinkElements)
 }

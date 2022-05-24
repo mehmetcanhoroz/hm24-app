@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type IAnalyserService interface {
@@ -14,9 +15,10 @@ type IAnalyserService interface {
 	FindHtmlTitleOfURL(url string) string
 	FindAllUrlsInPage(url string) []*html.Node
 	FindAllUrlPathsInPage(elements []*html.Node) []string
+	CountOfExternalUrlsInPage(elements []string) int
+	DetermineHTMLVersion(htmlContent string) string
 	//FindAllExternalPathsInPage(elements []*html.Node) []string
 	//FindAllInternalPathsInPage(elements []*html.Node) []string
-	//DetermineHTMLVersion(html string) string
 	//
 	//CountOfInternalUrls(urls []string) int
 	//CountOfExternalUrls(urls []string) int
@@ -144,6 +146,48 @@ func (s AnalyseService) FindAllUrlsInPage(url string) []*html.Node {
 	listLinks := s.getListOfTypeHtmlElements(htmlContent, "a", tempList)
 
 	return listLinks
+}
+
+func (s AnalyseService) CountOfExternalUrlsInPage(urls []string) int {
+	var count int
+	externalIdentifiers := []string{
+		"http://",
+		"https://",
+	}
+	for _, url := range urls {
+		for _, identifier := range externalIdentifiers {
+			if strings.HasPrefix(strings.TrimSpace(url), identifier) {
+				count++
+				break
+			}
+		}
+	}
+	return count
+}
+func (s AnalyseService) DetermineHTMLVersion(htmlContent string) string {
+	var htmlVersions = make(map[string]string)
+	var version = "UNKNOWN"
+
+	htmlVersions["HTML 4.01 Strict"] = `"-//W3C//DTD HTML 4.01//EN"`
+	htmlVersions["HTML 4.01 Transitional"] = `"-//W3C//DTD HTML 4.01 Transitional//EN"`
+	htmlVersions["HTML 4.01 Frameset"] = `"-//W3C//DTD HTML 4.01 Frameset//EN"`
+	htmlVersions["HTML 4.01"] = `DTD HTML 4.01`
+	htmlVersions["XHTML 1.0 Strict"] = `"-//W3C//DTD XHTML 1.0 Strict//EN"`
+	htmlVersions["XHTML 1.0 Transitional"] = `"-//W3C//DTD XHTML 1.0 Transitional//EN"`
+	htmlVersions["XHTML 1.0 Frameset"] = `"-//W3C//DTD XHTML 1.0 Frameset//EN"`
+	htmlVersions["XHTML 1.0 Frameset"] = `"DTD XHTML 1.0 Frameset`
+	htmlVersions["XHTML 1.1"] = `"-//W3C//DTD XHTML 1.1//EN"`
+	htmlVersions["HTML 5"] = `<!DOCTYPE html>`
+
+	for doctype, matcher := range htmlVersions {
+		match := strings.Contains(htmlContent, matcher)
+
+		if match == true {
+			version = doctype
+		}
+	}
+
+	return version
 }
 
 func NewAnalyseService() AnalyseService {

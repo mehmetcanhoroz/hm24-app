@@ -31,6 +31,27 @@ func (h *AnalyseHandler) GetHtmlContentOfURL(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+func (h *AnalyseHandler) DetermineHTMLVersion(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	url := queryParams["url"][0]
+
+	htmlContent := h.AnalyserService.GetHtmlContentOfURL(fmt.Sprintf("%s", url))
+
+	err := rest_utils.PrepareApiResponseAsJson(w)
+	if err != nil {
+		return
+	}
+
+	version := h.AnalyserService.DetermineHTMLVersion(htmlContent)
+
+	response := rest_utils.NewApiResponse(200, version, "")
+	w.WriteHeader(200)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		panic(err)
+	}
+}
+
 func (h *AnalyseHandler) FindHtmlTitleOfURL(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	url := queryParams["url"][0]
@@ -50,7 +71,7 @@ func (h *AnalyseHandler) FindHtmlTitleOfURL(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (h *AnalyseHandler) GetListOfTypeHtmlElements(w http.ResponseWriter, r *http.Request) {
+func (h *AnalyseHandler) GetListOfLinkElements(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	url := queryParams["url"][0]
 
@@ -62,9 +83,12 @@ func (h *AnalyseHandler) GetListOfTypeHtmlElements(w http.ResponseWriter, r *htt
 	}
 
 	links := h.AnalyserService.FindAllUrlPathsInPage(htmlContent)
+	externalUrlCount := h.AnalyserService.CountOfExternalUrlsInPage(links)
 	responseWithCount := map[string]interface{}{
-		"count": len(links),
-		"links": links,
+		"total_count":    len(links),
+		"external_count": externalUrlCount,
+		"internal_count": len(links) - externalUrlCount,
+		"links":          links,
 	}
 
 	response := rest_utils.NewApiResponse(200, responseWithCount, "")
