@@ -49,4 +49,5 @@ func prepareHandlers() {
 	analyseRouter.HandleFunc("/html-version", analyseHandler.DetermineHTMLVersion)
 	analyseRouter.HandleFunc("/title", analyseHandler.FindHtmlTitleOfURL)
 	analyseRouter.HandleFunc("/links", analyseHandler.GetListOfLinkElements)
+	analyseRouter.HandleFunc("/hx", analyseHandler.GetCountOfHXElements)
 }

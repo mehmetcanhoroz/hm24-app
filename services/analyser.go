@@ -11,9 +11,10 @@ import (
 )
 
 type IAnalyserService interface {
-	GetHtmlContentOfURL(url string) string
-	FindHtmlTitleOfURL(url string) string
-	FindAllUrlsInPage(url string) []*html.Node
+	SendHttpRequest(url string) io.ReadCloser
+	GetHtmlContentOfURL(htmlContent io.ReadCloser) string
+	FindHtmlTitleOfURL(htmlContent io.ReadCloser) string
+	FindAllXElementInPage(gotHtmlContent *html.Node, elementType string) []*html.Node
 	FindAllUrlPathsInPage(elements []*html.Node) []string
 	CountOfExternalUrlsInPage(elements []string) int
 	DetermineHTMLVersion(htmlContent string) string
@@ -28,6 +29,23 @@ type IAnalyserService interface {
 }
 
 type AnalyseService struct {
+}
+
+func (s AnalyseService) SendHttpRequest(url string) io.ReadCloser {
+	resp, err := http.Get(url)
+	if err != nil {
+		logger.Error("While sending http request, an error occurred.", zap.Error(err))
+		return nil
+	}
+
+	/*defer func(Body io.ReadCloser) {
+		err := Body.Close()
+		if err != nil {
+			logger.Error("While closing http request, an error occurred.", zap.Error(err))
+		}
+	}(resp.Body)*/
+
+	return resp.Body
 }
 
 func (s AnalyseService) isThisElement(n *html.Node, elementType string) bool {
@@ -62,21 +80,16 @@ func (s AnalyseService) getListOfTypeHtmlElements(n *html.Node, elementType stri
 	return listOfElements
 }
 
-func (s AnalyseService) GetHtmlContentOfURL(url string) string {
-	resp, err := http.Get(url)
-	if err != nil {
-		logger.Error("While sending http request, an error occurred.", zap.Error(err))
-		return ""
-	}
+func (s AnalyseService) GetHtmlContentOfURL(htmlContent io.ReadCloser) string {
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
 			logger.Error("While closing http request, an error occurred.", zap.Error(err))
 		}
-	}(resp.Body)
+	}(htmlContent)
 
-	htmlOfURL, err := ioutil.ReadAll(resp.Body)
+	htmlOfURL, err := ioutil.ReadAll(htmlContent)
 	if err != nil {
 		logger.Error("While reading html response, an error occurred.", zap.Error(err))
 	}
@@ -84,27 +97,22 @@ func (s AnalyseService) GetHtmlContentOfURL(url string) string {
 	return string(htmlOfURL)
 }
 
-func (s AnalyseService) FindHtmlTitleOfURL(url string) string {
-	resp, err := http.Get(url)
-	if err != nil {
-		logger.Error("While sending http request, an error occurred.", zap.Error(err))
-		return ""
-	}
+func (s AnalyseService) FindHtmlTitleOfURL(htmlContent io.ReadCloser) string {
 
 	defer func(Body io.ReadCloser) {
 		err := Body.Close()
 		if err != nil {
 			logger.Error("While closing http request, an error occurred.", zap.Error(err))
 		}
-	}(resp.Body)
+	}(htmlContent)
 
-	htmlContent, err := html.Parse(resp.Body)
+	gotHtmlContent, err := html.Parse(htmlContent)
 	if err != nil {
 		logger.Error("While parsing html content, an error occurred.", zap.Error(err))
 		return ""
 	}
 
-	foundTitle, found := s.findDataOfHtmlElement(htmlContent, "title")
+	foundTitle, found := s.findDataOfHtmlElement(gotHtmlContent, "title")
 
 	if found {
 		return foundTitle
@@ -121,29 +129,11 @@ func (s AnalyseService) FindAllUrlPathsInPage(elements []*html.Node) []string {
 	return links
 }
 
-func (s AnalyseService) FindAllUrlsInPage(url string) []*html.Node {
-	resp, err := http.Get(url)
-	if err != nil {
-		logger.Error("While sending http request, an error occurred.", zap.Error(err))
-		return nil
-	}
-
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-		if err != nil {
-			logger.Error("While closing http request, an error occurred.", zap.Error(err))
-		}
-	}(resp.Body)
-
-	htmlContent, err := html.Parse(resp.Body)
-	if err != nil {
-		logger.Error("While parsing html content, an error occurred.", zap.Error(err))
-		return nil
-	}
+func (s AnalyseService) FindAllXElementInPage(gotHtmlContent *html.Node, elementType string) []*html.Node {
 
 	var tempList []*html.Node
 
-	listLinks := s.getListOfTypeHtmlElements(htmlContent, "a", tempList)
+	listLinks := s.getListOfTypeHtmlElements(gotHtmlContent, elementType, tempList)
 
 	return listLinks
 }
