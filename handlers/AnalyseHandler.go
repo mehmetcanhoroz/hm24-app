@@ -61,7 +61,13 @@ func (h *AnalyseHandler) GetListOfTypeHtmlElements(w http.ResponseWriter, r *htt
 		return
 	}
 
-	response := rest_utils.NewApiResponse(200, h.AnalyserService.FindAllUrlPathsInPage(htmlContent), "")
+	links := h.AnalyserService.FindAllUrlPathsInPage(htmlContent)
+	responseWithCount := map[string]interface{}{
+		"count": len(links),
+		"links": links,
+	}
+
+	response := rest_utils.NewApiResponse(200, responseWithCount, "")
 	w.WriteHeader(200)
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
