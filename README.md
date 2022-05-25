@@ -18,7 +18,7 @@ go run cmd/main.go
 ```
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+Pull requests are welcome. Anything want to discuss, please open an issue then we can have a chat what you would like to change.
 As I mentioned, It is for case. So, I already know there some part could be improved or refactored. However, Just completed to provide expected case.
 
 ## License
