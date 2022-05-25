@@ -172,6 +172,36 @@ func (h *AnalyseHandler) GetCountOfHXElements(w http.ResponseWriter, r *http.Req
 	}
 }
 
+func (h *AnalyseHandler) IsThereLoginForm(w http.ResponseWriter, r *http.Request) {
+	queryParams := r.URL.Query()
+	url := queryParams["url"][0]
+
+	requestContent := h.AnalyserService.SendHttpRequest(url)
+
+	requestContentX, _ := html.Parse(requestContent)
+	requestContent1 := requestContentX
+	requestContent2 := requestContentX
+
+	err := rest_utils.PrepareApiResponseAsJson(w)
+
+	htmlInputContent := h.AnalyserService.FindAllXElementInPage(requestContent1, "input")
+	htmlFormContent := h.AnalyserService.FindAllXElementInPage(requestContent2, "form")
+
+	println(htmlFormContent)
+	println(htmlInputContent)
+
+	if err != nil {
+		return
+	}
+
+	response := rest_utils.NewApiResponse(200, h.AnalyserService.IsThereLoginForm(htmlInputContent, htmlFormContent), "")
+	w.WriteHeader(200)
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		panic(err)
+	}
+}
+
 func NewAnalyseHandler(analyseService services.IAnalyserService) AnalyseHandler {
 	return AnalyseHandler{AnalyserService: analyseService}
 }

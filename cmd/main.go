@@ -50,4 +50,5 @@ func prepareHandlers() {
 	analyseRouter.HandleFunc("/title", analyseHandler.FindHtmlTitleOfURL)
 	analyseRouter.HandleFunc("/links", analyseHandler.GetListOfLinkElements)
 	analyseRouter.HandleFunc("/hx", analyseHandler.GetCountOfHXElements)
+	analyseRouter.HandleFunc("/login-form", analyseHandler.IsThereLoginForm)
 }

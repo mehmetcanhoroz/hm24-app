@@ -18,6 +18,7 @@ type IAnalyserService interface {
 	FindAllUrlPathsInPage(elements []*html.Node) []string
 	CountOfExternalUrlsInPage(elements []string) int
 	DetermineHTMLVersion(htmlContent string) string
+	IsThereLoginForm(inputs []*html.Node, forms []*html.Node) bool
 	//FindAllExternalPathsInPage(elements []*html.Node) []string
 	//FindAllInternalPathsInPage(elements []*html.Node) []string
 	//
@@ -138,6 +139,37 @@ func (s AnalyseService) FindAllXElementInPage(gotHtmlContent *html.Node, element
 	return listLinks
 }
 
+func (s AnalyseService) IsThereLoginForm(inputs []*html.Node, forms []*html.Node) bool {
+
+	for _, form := range forms {
+		if form.Type == html.ElementNode && form.Data == "form" {
+			//this attr could be, method, id, action, class. So when we have a form related login keywords, that means we could have login form
+			for _, attribute := range form.Attr {
+				if strings.Contains(attribute.Val, "login") ||
+					strings.Contains(attribute.Val, "signin") ||
+					strings.Contains(attribute.Val, "sign-in") ||
+					strings.Contains(attribute.Val, "user") {
+					return true
+				}
+			}
+		}
+	}
+
+	for _, input := range inputs {
+		if input.Type == html.ElementNode && input.Data == "input" {
+			// password is an important keyword here, because input type could be the password directly.
+			for _, attribute := range input.Attr {
+				if strings.Contains(attribute.Val, "password") ||
+					attribute.Val == "pwd" {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
 func (s AnalyseService) CountOfExternalUrlsInPage(urls []string) int {
 	var count int
 	externalIdentifiers := []string{
@@ -154,6 +186,7 @@ func (s AnalyseService) CountOfExternalUrlsInPage(urls []string) int {
 	}
 	return count
 }
+
 func (s AnalyseService) DetermineHTMLVersion(htmlContent string) string {
 	var htmlVersions = make(map[string]string)
 	var version = "UNKNOWN"
