@@ -6,8 +6,10 @@ import (
 	"golang.org/x/net/html"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 type IAnalyserService interface {
@@ -19,6 +21,7 @@ type IAnalyserService interface {
 	CountOfExternalUrlsInPage(elements []string) int
 	DetermineHTMLVersion(htmlContent string) string
 	IsThereLoginForm(inputs []*html.Node, forms []*html.Node) bool
+	CountOfAccessibleUrls(urls []string, baseUrl string) int
 	//FindAllExternalPathsInPage(elements []*html.Node) []string
 	//FindAllInternalPathsInPage(elements []*html.Node) []string
 	//
@@ -125,7 +128,11 @@ func (s AnalyseService) FindHtmlTitleOfURL(htmlContent io.ReadCloser) string {
 func (s AnalyseService) FindAllUrlPathsInPage(elements []*html.Node) []string {
 	var links []string
 	for _, node := range elements {
-		links = append(links, node.Attr[0].Val)
+		for _, attribute := range node.Attr {
+			if attribute.Key == "href" {
+				links = append(links, attribute.Val)
+			}
+		}
 	}
 	return links
 }
@@ -183,6 +190,57 @@ func (s AnalyseService) CountOfExternalUrlsInPage(urls []string) int {
 				break
 			}
 		}
+	}
+	return count
+}
+
+func (s AnalyseService) CountOfAccessibleUrls(urls []string, baseUrl string) int {
+	var wg sync.WaitGroup
+	var count int
+	externalIdentifiers := []string{
+		"http://",
+		"https://",
+	}
+	wg.Add(len(urls))
+	c := make(chan int, len(urls))
+
+	for _, url := range urls {
+		linkForGo := url
+
+		isExternal := false
+		for _, identifier := range externalIdentifiers {
+			if strings.HasPrefix(strings.TrimSpace(url), identifier) {
+				isExternal = true
+				break
+			}
+		}
+		if !isExternal {
+			if baseUrl[len(baseUrl)-1:] != "/" {
+				baseUrl = baseUrl + "/"
+			}
+			linkForGo = baseUrl + url
+		}
+
+		go func() {
+			defer wg.Done()
+
+			response, err := http.Get(linkForGo)
+			if err != nil {
+				c <- 0
+				log.Println(err)
+			} else if response.StatusCode > 399 {
+				c <- 0
+			} else {
+				c <- 1
+				defer response.Body.Close()
+			}
+		}()
+	}
+
+	wg.Wait()
+	close(c)
+	for i2 := range c {
+		count += i2
 	}
 	return count
 }

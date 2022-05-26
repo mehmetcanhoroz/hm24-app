@@ -95,11 +95,16 @@ func (h *AnalyseHandler) GetListOfLinkElements(w http.ResponseWriter, r *http.Re
 
 	links := h.AnalyserService.FindAllUrlPathsInPage(htmlContent)
 	externalUrlCount := h.AnalyserService.CountOfExternalUrlsInPage(links)
+
+	countOfAccessibleLinks := h.AnalyserService.CountOfAccessibleUrls(links, url)
+
 	responseWithCount := map[string]interface{}{
-		"total_count":    len(links),
-		"external_count": externalUrlCount,
-		"internal_count": len(links) - externalUrlCount,
-		"links":          links,
+		"total_count":             len(links),
+		"external_count":          externalUrlCount,
+		"internal_count":          len(links) - externalUrlCount,
+		"links":                   links,
+		"accessible_link_count":   countOfAccessibleLinks,
+		"inaccessible_link_count": len(links) - countOfAccessibleLinks,
 	}
 
 	response := rest_utils.NewApiResponse(200, responseWithCount, "")
